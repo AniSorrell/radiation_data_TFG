@@ -1,0 +1,53 @@
+--Queries performed on data_analysis_raw_2
+
+--File Meta Information
+SELECT COUNT(DISTINCT(MediaStorageSOPClassUID)) FROM `data-analysis-tfg.data_analysis.data_analysis_raw_2`;
+
+SELECT DISTINCT(MediaStorageSOPClassUID) FROM `data-analysis-tfg.data_analysis.data_analysis_raw_2` 
+WHERE Modality = 'CT' or Modality = 'SR';
+
+SELECT Modality, ModalitiesInStudy FROM `data-analysis-tfg.data_analysis.data_analysis_raw_2` 
+WHERE ModalitiesInStudy[SAFE_OFFSET(0)] is not null AND (Modality = 'CT' or Modality = 'SR');
+
+SELECT COUNT(DISTINCT(StudyInstanceUID)) FROM `data-analysis-tfg.data_analysis.data_analysis_raw_2`;
+
+SELECT DISTINCT(TransferSyntaxUID) FROM `data-analysis-tfg.data_analysis.data_analysis_raw_2`
+WHERE Modality = 'CT' or Modality = 'SR';
+
+SELECT COUNTIF(TransferSyntaxUID = '1.2.840.10008.1.2') AS ImplicitVR, COUNTIF(TransferSyntaxUID = '1.2.840.10008.1.2.1') AS ExplicitVR FROM `data-analysis-tfg.data_analysis.data_analysis_raw_2`
+WHERE Modality = 'CT' or Modality = 'SR';
+
+--CT Image IOD
+SELECT * FROM `data-analysis-tfg`.data_analysis.INFORMATION_SCHEMA.COLUMNS
+WHERE table_name = 'data_analysis_raw_2';
+
+SELECT StudyInstanceUID, SeriesInstanceUID, FrameOfReferenceUID, IrradiationEventUID FROM `data-analysis-tfg.data_analysis.data_analysis_raw_2`;
+
+SELECT COUNT(StudyInstanceUID) AS StudyInstanceUID, COUNT(Modality) AS Modality, COUNT(SeriesInstanceUID) AS SeriesInstanceUID, 
+COUNT(FrameOfReferenceUID) AS FrameOfReferenceUID, COUNT(ImagePositionPatient) AS ImagePositionPatient, COUNT(ImageOrientationPatient) AS ImageOrientationPatient,
+COUNT(PixelSpacing) AS PixelSpacing, COUNT(SamplesPerPixel) AS SamplesPerPixel, COUNT(PhotometricInterpretation) AS PhotoInterpretation,
+COUNT('Rows') AS NumberOfRows, COUNT(Columns) AS NumberOfColumns, COUNT(BitsAllocated) AS BitsAllocated, COUNT(BitsStored) AS BitsStored, 
+COUNT(HighBit) AS HighBit, COUNT(PixelRepresentation) AS PixelRepresentation FROM `data-analysis-tfg.data_analysis.data_analysis_raw_2` WHERE Modality = 'CT';
+
+SELECT ExposureDoseSequence FROM `data-analysis-tfg.data_analysis.data_analysis_raw_2` WHERE ExposureDoseSequence[SAFE_OFFSET(0)] is not null;
+
+SELECT Tag_00211028, Tag_00231080, Tag_00251001, Tag_00291000, Tag_00291040,
+Tag_00291140, Tag_00291240, Tag_0042A043, Tag_00491001, Tag_00571005, Tag_0057100B,
+Tag_00571026, Tag_00711023, Tag_00811011,Tag_2001105F, Tag_20011200, Tag_20019000,
+Tag_20051083, Tag_20051084, Tag_20051085, Tag_20051132, Tag_20051389, Tag_20051402,
+Tag_2005140E, Tag_2005140F, Tag_20051490, Tag_20051491, Tag_200B709F, Tag_200B70AA,
+Tag_200D3CF4, Tag_200D3CF6 FROM `data-analysis-tfg.data_analysis.data_analysis_raw_2`;  
+
+--SR Document IOD
+SELECT ModalitiesInStudy FROM `data-analysis-tfg.data_analysis.data_analysis_raw_2` 
+WHERE ModalitiesInStudy[SAFE_OFFSET(0)] is not null AND Modality = 'SR';
+
+SELECT ModalitiesInStudy, Modality FROM `data-analysis-tfg.data_analysis.radiation_data_SR` 
+WHERE NOT EXISTS(SELECT * FROM `data-analysis-tfg.data_analysis.radiation_data_SR`.ModalitiesInStudy AS x WHERE x like '%CT%') AND Modality = 'SR' 
+AND ModalitiesInStudy[SAFE_OFFSET(0)] is not null;
+
+SELECT StudyInstanceUID, SeriesInstanceUID FROM `data-analysis-tfg.data_analysis.data_analysis_raw_2` WHERE
+EXISTS(SELECT * FROM `data-analysis-tfg.data_analysis.data_analysis_raw_2`.ModalitiesInStudy AS x WHERE x like '%CT%') AND Modality = 'SR'
+AND ModalitiesInStudy[SAFE_OFFSET(0)] is not null
+ORDER BY StudyInstanceUID;
+

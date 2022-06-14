@@ -1,0 +1,126 @@
+--CT Image IOD
+--CREATE TABLE `data-analysis-tfg.data_analysis.radiation_data_CT` AS
+SELECT * FROM (
+  SELECT 
+  --any type of data, including Code Strings (CS) with VM = 1
+  StudyInstanceUID, StudyID, StudyDescription, SeriesInstanceUID, SeriesDescription, SeriesDate, SeriesTime, AcquisitionType
+  ,AcquisitionDate, AcquisitionTime, ContentDate, ContentTime,ProtocolName, FrameOfReferenceUID
+  ,Modality, Manufacturer, ManufacturerModelName, DerivationDescription
+  ,BodyPartExamined, SliceThickness, KVP, DataCollectionDiameter, Exposure, ExposureTime, XRayTubeCurrent, XRayTubeCurrentInmA
+  ,XRayTubeCurrentInuA, ScanLength, EnergyWeightingFactor, EstimatedDoseSaving, CTDIvol
+
+  --CS with VM = 2-n
+  ,ImageType[SAFE_OFFSET(0)] AS image_type_pixel_data
+  ,ImageType[SAFE_OFFSET(1)] AS image_type_patient_examination
+  ,ImageType[SAFE_OFFSET(2)] AS image_type_modality_specific
+  ,ImageType[SAFE_OFFSET(3)] AS image_type_other
+
+  --UI with VM = 1-n
+  ,IrradiationEventUID[SAFE_OFFSET(0)] AS IrradiationEventUID
+
+  --CTDI Phantom Type Code Sequence
+  ,CTDIPhantomTypeCodeSequence[SAFE_OFFSET(0)].CodeValue AS Phantom_CodeValue
+  ,CTDIPhantomTypeCodeSequence[SAFE_OFFSET(0)].CodingSchemeDesignator AS Phantom_SchemeDesignator
+  ,CTDIPhantomTypeCodeSequence[SAFE_OFFSET(0)].CodeMeaning AS Phantom_CodeMeaning
+
+  FROM `data-analysis-tfg.data_analysis.data_analysis_raw_2`
+  WHERE Modality = 'CT'
+);
+
+--SR Document IOD
+--CREATE TABLE `data-analysis-tfg.data_analysis.radiation_data_SR` AS
+SELECT * FROM (
+  SELECT
+  --any type of data, including Code Strings (CS) with VM = 1
+  StudyInstanceUID, StudyID, StudyDescription, SeriesInstanceUID, SeriesDescription, SeriesDate, SeriesTime, ContentDate, ContentTime
+  ,ProtocolName, FrameOfReferenceUID, Modality, ModalitiesInStudy, Manufacturer, ManufacturerModelName
+
+  --SR
+  --level 0
+  ,raw_data.ValueType AS root_item_value_type
+  ,raw_data.ConceptNameCodeSequence[SAFE_OFFSET(0)].CodeValue AS root_item_CNCS_CodeValue
+  ,raw_data.ConceptNameCodeSequence[SAFE_OFFSET(0)].CodingSchemeDesignator AS root_item_CNCS_SD
+  ,raw_data.ConceptNameCodeSequence[SAFE_OFFSET(0)].CodeMeaning AS root_item_CNCS_CodeMeaning
+
+  --level 1
+  ,ContentSequence_1.RelationshipType as L1_rel_type
+  ,ContentSequence_1.ValueType as L1_value_type
+  ,ContentSequence_1.ConceptNameCodeSequence[SAFE_OFFSET(0)].CodeMeaning as L1_CNCS_CodeMeaning
+  ,ContentSequence_1.ConceptCodeSequence[SAFE_OFFSET(0)].CodeMeaning as L1_CCS_CodeMeaning
+
+  --level 2
+  ,ContentSequence_2.RelationshipType as L2_rel_type
+  ,ContentSequence_2.ValueType as L2_value_type
+  ,ContentSequence_2.ConceptNameCodeSequence[SAFE_OFFSET(0)].CodeMeaning as L2_CNCS_CodeMeaning
+  ,ContentSequence_2.ConceptCodeSequence[SAFE_OFFSET(0)].CodeMeaning as L2_CCS_CodeMeaning
+  ,ContentSequence_2.MeasuredValueSequence[SAFE_OFFSET(0)].MeasurementUnitsCodeSequence[SAFE_OFFSET(0)].CodeValue AS L2_MVS_CodeValue
+  ,ContentSequence_2.MeasuredValueSequence[SAFE_OFFSET(0)].NumericValue[SAFE_OFFSET(0)] AS L2_MVS_NumericValue
+
+  --level 3
+  ,ContentSequence_3.RelationshipType as L3_rel_type
+  ,ContentSequence_3.ValueType as L3_value_type
+  ,ContentSequence_3.ConceptNameCodeSequence[SAFE_OFFSET(0)].CodeMeaning as L3_CNCS_CodeMeaning
+  ,ContentSequence_3.ConceptCodeSequence[SAFE_OFFSET(0)].CodeMeaning as L3_CCS_CodeMeaning
+  ,ContentSequence_3.MeasuredValueSequence[SAFE_OFFSET(0)].MeasurementUnitsCodeSequence[SAFE_OFFSET(0)].CodeValue AS L3_MVS_CodeValue
+  ,ContentSequence_3.MeasuredValueSequence[SAFE_OFFSET(0)].NumericValue[SAFE_OFFSET(0)] AS L3_MVS_NumericValue
+
+  --level 4
+  ,ContentSequence_4.RelationshipType as L4_rel_type
+  ,ContentSequence_4.ValueType as L4_value_type
+  ,ContentSequence_4.ConceptNameCodeSequence[SAFE_OFFSET(0)].CodeMeaning as L4_CNCS_CodeMeaning
+  ,ContentSequence_4.ConceptCodeSequence[SAFE_OFFSET(0)].CodeMeaning as L4_CCS_CodeMeaning
+  ,ContentSequence_4.MeasuredValueSequence[SAFE_OFFSET(0)].MeasurementUnitsCodeSequence[SAFE_OFFSET(0)].CodeValue AS L4_MVS_CodeValue
+  ,ContentSequence_4.MeasuredValueSequence[SAFE_OFFSET(0)].NumericValue[SAFE_OFFSET(0)] AS L4_MVS_NumericValue
+
+  --level 5
+  ,ContentSequence_5.RelationshipType as L5_rel_type
+  ,ContentSequence_5.ValueType as L5_value_type
+  ,ContentSequence_5.ConceptNameCodeSequence[SAFE_OFFSET(0)].CodeMeaning as L5_CNCS_CodeMeaning
+  ,ContentSequence_5.ConceptCodeSequence[SAFE_OFFSET(0)].CodeMeaning as L5_CCS_CodeMeaning
+  ,ContentSequence_5.MeasuredValueSequence[SAFE_OFFSET(0)].MeasurementUnitsCodeSequence[SAFE_OFFSET(0)].CodeValue AS L5_MVS_CodeValue
+  ,ContentSequence_5.MeasuredValueSequence[SAFE_OFFSET(0)].NumericValue[SAFE_OFFSET(0)] AS L5_MVS_NumericValue
+  
+  FROM `data-analysis-tfg.data_analysis.data_analysis_raw_2` AS raw_data,
+  UNNEST(raw_data.ContentSequence) AS ContentSequence_1
+  LEFT JOIN 
+  UNNEST(ContentSequence_1.ContentSequence) as ContentSequence_2
+  LEFT JOIN
+  UNNEST(ContentSequence_2.ContentSequence) as ContentSequence_3 
+  LEFT JOIN
+  UNNEST(ContentSequence_3.ContentSequence) as ContentSequence_4
+  LEFT JOIN
+  UNNEST(ContentSequence_4.ContentSequence) as ContentSequence_5
+
+  WHERE Modality = 'SR'
+)
+
+WHERE
+--level 1 restrictions
+L1_CNCS_CodeMeaning LIKE '%DLP%' OR L1_CNCS_CodeMeaning LIKE '%Range Name%' OR L1_CNCS_CodeMeaning LIKE '%Total Number of Irradiation Events%' OR
+L1_CNCS_CodeMeaning LIKE '%CT Dose Length Product Total%' OR L1_CNCS_CodeMeaning LIKE '%Total mAs%' OR L1_CNCS_CodeMeaning LIKE '%Mean CTDIvol%' OR 
+L1_CNCS_CodeMeaning LIKE '%Exposure Time%'OR L1_CNCS_CodeMeaning LIKE '%CTDIw Phantom Type%' OR L1_CNCS_CodeMeaning LIKE '%KVP%' OR
+L1_CNCS_CodeMeaning LIKE '%Exposure%' OR L1_CNCS_CodeMeaning LIKE '%Scanning Length%' OR
+
+--level 2 restrictions
+L2_CNCS_CodeMeaning LIKE '%DLP%' OR L2_CNCS_CodeMeaning LIKE '%Range Name%' OR L2_CNCS_CodeMeaning LIKE '%Total Number of Irradiation Events%' OR
+L2_CNCS_CodeMeaning LIKE '%CT Dose Length Product Total%' OR L2_CNCS_CodeMeaning LIKE '%Total mAs%' OR L2_CNCS_CodeMeaning LIKE '%Mean CTDIvol%' OR 
+L2_CNCS_CodeMeaning LIKE '%Exposure Time%'OR L2_CNCS_CodeMeaning LIKE '%CTDIw Phantom Type%' OR L2_CNCS_CodeMeaning LIKE '%KVP%' OR
+L2_CNCS_CodeMeaning LIKE '%Exposure%' OR L2_CNCS_CodeMeaning LIKE '%Scanning Length%' OR
+
+--level 3 restrictions
+L3_CNCS_CodeMeaning LIKE '%DLP%' OR L3_CNCS_CodeMeaning LIKE '%Range Name%' OR L3_CNCS_CodeMeaning LIKE '%Total Number of Irradiation Events%' OR
+L3_CNCS_CodeMeaning LIKE '%CT Dose Length Product Total%' OR L3_CNCS_CodeMeaning LIKE '%Total mAs%' OR L3_CNCS_CodeMeaning LIKE '%Mean CTDIvol%' OR 
+L3_CNCS_CodeMeaning LIKE '%Exposure Time%'OR L3_CNCS_CodeMeaning LIKE '%CTDIw Phantom Type%' OR L3_CNCS_CodeMeaning LIKE '%KVP%' OR
+L3_CNCS_CodeMeaning LIKE '%Exposure%' OR L3_CNCS_CodeMeaning LIKE '%Scanning Length%' OR
+
+--level 4 restrictions
+L4_CNCS_CodeMeaning LIKE '%DLP%' OR L4_CNCS_CodeMeaning LIKE '%Range Name%' OR L4_CNCS_CodeMeaning LIKE '%Total Number of Irradiation Events%' OR
+L4_CNCS_CodeMeaning LIKE '%CT Dose Length Product Total%' OR L4_CNCS_CodeMeaning LIKE '%Total mAs%' OR L4_CNCS_CodeMeaning LIKE '%Mean CTDIvol%' OR 
+L4_CNCS_CodeMeaning LIKE '%Exposure Time%'OR L4_CNCS_CodeMeaning LIKE '%CTDIw Phantom Type%' OR L4_CNCS_CodeMeaning LIKE '%KVP%' OR
+L4_CNCS_CodeMeaning LIKE '%Exposure%' OR L4_CNCS_CodeMeaning LIKE '%Scanning Length%' OR
+
+--level 5 restrictions
+L5_CNCS_CodeMeaning LIKE '%DLP%' OR L5_CNCS_CodeMeaning LIKE '%Range Name%' OR L5_CNCS_CodeMeaning LIKE '%Total Number of Irradiation Events%' OR
+L5_CNCS_CodeMeaning LIKE '%CT Dose Length Product Total%' OR L5_CNCS_CodeMeaning LIKE '%Total mAs%' OR L5_CNCS_CodeMeaning LIKE '%Mean CTDIvol%' OR 
+L5_CNCS_CodeMeaning LIKE '%Exposure Time%'OR L5_CNCS_CodeMeaning LIKE '%CTDIw Phantom Type%' OR L5_CNCS_CodeMeaning LIKE '%KVP%' OR
+L5_CNCS_CodeMeaning LIKE '%Exposure%' OR L5_CNCS_CodeMeaning LIKE '%Scanning Length%'
